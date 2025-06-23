@@ -19,3 +19,15 @@ or
 ```bash
 npm run start
 ```
+
+To Test API
+- Using Postman
+    - Import all files to use the test 
+- Using Newman
+    - ```bash 
+        npm run test 
+        ```
+        or
+        ```bash
+        bun run test
+        ```

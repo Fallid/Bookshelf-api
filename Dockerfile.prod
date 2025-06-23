@@ -1,0 +1,60 @@
+# Dockerfile untuk Produksi (Multi-Stage)
+
+# --- TAHAP 1: BASE ---
+# Image dasar resmi dari Bun, sudah benar.
+FROM oven/bun:1.2.9-alpine AS base
+WORKDIR /app
+
+# --- TAHAP 2: INSTALL ---
+# Tahap ini fokus untuk menginstall dependensi.
+# Pola Anda memisahkan dev dan prod di sini, ini valid.
+FROM base AS install
+
+# Install semua dependensi (termasuk dev)
+RUN mkdir -p /temp/dev
+COPY package.json bun.lock /temp/dev/
+RUN cd /temp/dev && bun install --frozen-lockfile
+
+# Install dependensi produksi saja
+RUN mkdir -p /temp/prod
+COPY package.json bun.lock /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
+
+# --- TAHAP 3: PRERELEASE ---
+# Tahap ini berfungsi sebagai salinan lengkap dari kode sumber Anda
+# Ini juga sudah benar.
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
+COPY . .
+
+# --- TAHAP 4: RELEASE (FINAL IMAGE) ---
+# Ini adalah tahap perakitan akhir dan inti dari perbaikan kita.
+FROM base AS release
+WORKDIR /app
+
+# Atur environment ke 'production'
+# ENV NODE_ENV=production
+
+# 1. Salin HANYA dependensi produksi dari tahap 'install'
+COPY --from=install /temp/prod/node_modules node_modules
+
+# 2. Salin package.json dari tahap 'prerelease'.
+#    Ini dibutuhkan agar 'bun run start' bisa bekerja.
+COPY --from=prerelease /app/package.json .
+
+# 3. Salin SELURUH folder 'src' dari tahap 'prerelease'.
+#    Ini adalah perbaikan utama untuk menjaga struktur file.
+COPY --from=prerelease /app/src ./src
+
+# 4. Salin file environment untuk produksi.
+#    Ini penting agar server tahu PORT dan HOST yang benar.
+COPY --from=prerelease /app/.env.prod .
+
+# Atur user untuk keamanan
+USER bun
+
+# Buka port yang didefinisikan di .env.prod (misal: 9002)
+EXPOSE 9002/tcp
+
+# Perintah untuk menjalankan aplikasi
+ENTRYPOINT [ "bun", "run", "start" ]

@@ -1,0 +1,24 @@
+# Dockerfile untuk Development dengan Bun
+
+# 1. Mulai dari image resmi Bun yang ringan.
+#    Menggunakan tag spesifik seperti :1-alpine lebih baik.
+FROM oven/bun:1.2.9-alpine
+
+# 2. Tetapkan direktori kerja di dalam kontainer.
+WORKDIR /app
+
+# 3. Salin file dependensi.
+#    PENTING: Nama file lock Bun adalah 'bun.lockb' (b untuk biner).
+COPY package.json bun.lock ./
+COPY . .
+
+# 4. Install SEMUA dependensi (termasuk devDependencies).
+#    Untuk development, kita butuh semua alat bantu seperti server dev, linter, dll.
+RUN bun install --frozen-lockfile
+
+# 5. Buka port yang akan digunakan oleh server development Anda.
+EXPOSE 9000
+
+# 6. Perintah default untuk menjalankan development server.
+#    Ini akan dieksekusi saat kontainer dijalankan.
+CMD [ "bun", "run", "start-dev" ]
