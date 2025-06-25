@@ -22,7 +22,7 @@ npm run start
 
 To Test API
 - Using Postman
-    - Import all files to use the test 
+    - Import all files from directory API-Test to use the test 
 - Using Newman
     - ```bash 
         npm run test 
